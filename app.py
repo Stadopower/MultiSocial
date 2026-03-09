@@ -32,7 +32,7 @@ class App:
         self.root.configure(bg=BG)
         self.root.resizable(False, False)
 
-        self.image_path = []
+        self.image_paths = []
         self.config = self._load_config()
 
         self._build()
@@ -161,17 +161,73 @@ class App:
                                fg=ERROR if count > 280 else FG_DIM)
 
     def _browse(self):
-        paths = filedialog.askopenfilenames(
-            filetypes=[("Images", "*.jpg *.jpeg *.png"), ("All", "*.*")]
-        )
-        if paths:
-            self.image_path = paths
-            text = [os.path.basename(path)+', ' for path in paths]
-            text = ''.join(text)
-            self.img_label.config(text=text, fg=SUCCESS)
+        paths = list(filedialog.askopenfilenames(
+        filetypes=[("Images", "*.jpg *.jpeg *.png"), ("All", "*.*")]
+        ))
+        if not paths:
+            return
+        self._open_reorder_window(paths)
+
+    def _open_reorder_window(self, paths):
+        win = tk.Toplevel(self.root)
+        win.title("Order Images")
+        win.geometry("400x500")
+        win.configure(bg=BG)
+        win.grab_set()
+
+        tk.Label(win, text="DRAG TO REORDER", font=("Courier", 10, "bold"),
+                bg=BG, fg=FG_DIM).pack(pady=(16, 8))
+
+        listbox = tk.Listbox(win, bg=ENTRY, fg=FG, font=("Courier", 10),
+                            selectbackground=ACCENT, selectforeground=BG,
+                            bd=0, highlightthickness=1,
+                            highlightbackground=BORDER, activestyle="none")
+        listbox.pack(fill=tk.BOTH, expand=True, padx=20)
+
+        for path in paths:
+            listbox.insert(tk.END, os.path.basename(path))
+
+        btn_row = tk.Frame(win, bg=BG)
+        btn_row.pack(pady=12)
+
+        def move(direction):
+            selected = listbox.curselection()
+            if not selected:
+                return
+            i = selected[0]
+            j = i + direction
+            if j < 0 or j >= listbox.size():
+                return
+            # Swap in listbox
+            a, b = listbox.get(i), listbox.get(j)
+            listbox.delete(i)
+            listbox.insert(i, b)
+            listbox.delete(j)
+            listbox.insert(j, a)
+            # Swap in paths list
+            paths[i], paths[j] = paths[j], paths[i]
+            listbox.select_set(j)
+
+        tk.Button(btn_row, text="▲ Up", command=lambda: move(-1),
+                bg=CARD, fg=ACCENT, font=("Courier", 10, "bold"),
+                relief=tk.FLAT, cursor="hand2", padx=16, pady=6).pack(side=tk.LEFT, padx=8)
+
+        tk.Button(btn_row, text="▼ Down", command=lambda: move(1),
+                bg=CARD, fg=ACCENT, font=("Courier", 10, "bold"),
+                relief=tk.FLAT, cursor="hand2", padx=16, pady=6).pack(side=tk.LEFT, padx=8)
+
+        def confirm():
+            self.image_paths = paths
+            names = ", ".join(os.path.basename(p) for p in paths)
+            self.img_label.config(text=names, fg=SUCCESS)
+            win.destroy()
+
+        tk.Button(win, text="CONFIRM", command=confirm,
+                bg=ACCENT, fg=BG, font=("Courier", 12, "bold"),
+                relief=tk.FLAT, cursor="hand2", pady=10).pack(fill=tk.X, padx=20, pady=(0, 16))
 
     def _clear_image(self):
-        self.image_path = None
+        self.image_paths = None
         self.img_label.config(text="No image selected", fg=FG_DIM)
 
     def _on_post(self):
@@ -191,14 +247,14 @@ class App:
     def _do_post(self, text: str):
         results = []
         if self.post_x.get():
-            results.append("𝕏  " + X.post(text, self.config["twitter"], self.image_path))
+            results.append("𝕏  " + X.post(text, self.config["twitter"], self.image_paths))
         if self.post_ig.get():
-            results.append("📸 " + instagram.post(text, self.config["instagram"], self.image_path))
+            results.append("📸 " + instagram.post(text, self.config["instagram"], self.image_paths))
         if self.post_bsky.get():
-            results.append("☁  " + bluesky.post(text, self.config["bluesky"], self.image_path))
+            results.append("☁  " + bluesky.post(text, self.config["bluesky"], self.image_paths))
         if self.post_pint.get():
             title = self.title_entry.get().strip or None
-            results.append("📌 " + pinterest.post(text, self.config["pinterest"], title, self.image_path))
+            results.append("📌 " + pinterest.post(text, self.config["pinterest"], title, self.image_paths))
         self.root.after(0, self._post_done, "\n".join(results))
 
     def _post_done(self, message: str):

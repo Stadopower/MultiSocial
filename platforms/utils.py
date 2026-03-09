@@ -36,7 +36,11 @@ def crop_to_vertical(image_path:str, app_name:str):
         im = im.convert('RGB')
         im.save(path+'_pint.jpg')
         return f"{path}_pint.jpg"
-
+    
+def check_image_size(image_path:str, limit:float):
+    size = os.path.getsize(image_path)
+    size = size/(1024*1024)
+    return size > limit
 
 if __name__ == "__main__":
     image_path = "images/test.jpg"
