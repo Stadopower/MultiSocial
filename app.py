@@ -32,7 +32,7 @@ class App:
         self.root.configure(bg=BG)
         self.root.resizable(False, False)
 
-        self.image_path: str | None = None
+        self.image_path = []
         self.config = self._load_config()
 
         self._build()
@@ -161,12 +161,14 @@ class App:
                                fg=ERROR if count > 280 else FG_DIM)
 
     def _browse(self):
-        path = filedialog.askopenfilename(
+        paths = filedialog.askopenfilenames(
             filetypes=[("Images", "*.jpg *.jpeg *.png"), ("All", "*.*")]
         )
-        if path:
-            self.image_path = path
-            self.img_label.config(text=os.path.basename(path), fg=SUCCESS)
+        if paths:
+            self.image_path = paths
+            text = [os.path.basename(path)+', ' for path in paths]
+            text = ''.join(text)
+            self.img_label.config(text=text, fg=SUCCESS)
 
     def _clear_image(self):
         self.image_path = None
@@ -189,7 +191,7 @@ class App:
     def _do_post(self, text: str):
         results = []
         if self.post_x.get():
-            results.append("𝕏  " + twitter.post(text, self.config["twitter"], self.image_path))
+            results.append("𝕏  " + X.post(text, self.config["twitter"], self.image_path))
         if self.post_ig.get():
             results.append("📸 " + instagram.post(text, self.config["instagram"], self.image_path))
         if self.post_bsky.get():

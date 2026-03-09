@@ -11,25 +11,31 @@ def crop_to_vertical(image_path:str, app_name:str):
     app_name: lowercase Name of the Socialmedia to post to. (Instagram or Pinterest)
     """
     im = Image.open(image_path)
-    path, format = os.path.splitext(image_path)
+    path, _ = os.path.splitext(image_path)
     width, height = im.width, im.height
 
     if app_name == 'instagram':
         # Instagram: 1080x1350 4:5
+        if '_insta' in os.path.basename(image_path):
+            return image_path
         half_crop = (width - (height * 0.8)) / 2
         box = (0+half_crop, 0, width-half_crop, height)
         im = im.crop(box=box)
-        im.save(path+'_insta'+format)
-        return f"{path}_insta{format}"
+        im = im.convert('RGB')
+        im.save(path+'_insta.jpg')
+        return f"{path}_insta.jpg"
     
     if app_name =='pinterest':
         # Pinterest: 1000x1500 2:3
+        if '_pint' in os.path.basename(image_path):
+            return image_path      
         new_width = height*(2/3)
         half_crop = (width-new_width)/2
         box = (0+half_crop, 0, width-half_crop, height)
         im = im.crop(box=box)
-        im.save(path+'_pint'+format)
-        return f"{path}_pint{format}"
+        im = im.convert('RGB')
+        im.save(path+'_pint.jpg')
+        return f"{path}_pint.jpg"
 
 
 if __name__ == "__main__":
